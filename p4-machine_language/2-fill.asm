@@ -37,7 +37,7 @@ D=M
 @8191
 D=D-A
 @LOOPBLACK
-D;JLE
+D;JLT
 
 @LOOP
 0;JMP
@@ -67,7 +67,13 @@ D=M
 @8191
 D=D-A
 @LOOPWHITE
-D;JLE
+D;JLT
+
+//whitepont = 3
+//d = 3
+//a=8191
+//d = 3-8191
+//loop if d is negative or 0
 
 @LOOP
 0;JMP
