@@ -1,0 +1,83 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/5/CPU.hdl
+/**
+ * The Hack Central Processing unit (CPU).
+ * Parses the binary code in the instruction input and executes it according to the
+ * Hack machine language specification. In the case of a C-instruction, computes the
+ * function specified by the instruction. If the instruction specifies to read a memory
+ * value, the inM input is expected to contain this value. If the instruction specifies
+ * to write a value to the memory, sets the outM output to this value, sets the addressM
+ * output to the target address, and asserts the writeM output (when writeM = 0, any
+ * value may appear in outM).
+ * If the reset input is 0, computes the address of the next instruction and sets the
+ * pc output to that value. If the reset input is 1, sets pc to 0.
+ * Note: The outM and writeM outputs are combinational: they are affected by the
+ * instruction's execution during the current cycle. The addressM and pc outputs are
+ * clocked: although they are affected by the instruction's execution, they commit to
+ * their new values only in the next cycle.
+ */
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    Not(in= instruction[15], out= aInstruct);
+    Not(in=aInstruct, out = cInstruct);
+
+    Mux16(a= instruction[0..15], b= ALUOut, sel= aInstruct, out= preA);
+    
+    //dest=aregister OR a instruct
+    And(a= cInstruct, b= instruction[5], out= cInstructStoreA);
+    Or(a= aInstruct, b= cInstructStoreA, out= storeA);
+
+    ARegister(in= preA, load= storeA, out= aReg, out[0..14]=addressM);
+
+
+    //only need M if a = 1
+    Mux16(a= aReg, b= inM, sel= instruction[12], out= selectReg);
+
+    //d register only loads of d2 and c instruct
+    And(a= cInstruct, b= instruction[4], out= Dload);
+    DRegister(in= ALUOut, load= Dload, out= outD);
+
+    ALU(x= outD, y= selectReg, zx= instruction[11], nx= instruction[10], zy= instruction[9], ny= instruction[8], f= instruction[7], no= instruction[6] , out= ALUOut, zr= Zero, ng= Negative);
+
+
+    //d3 is if u write to m
+    And(a=instruction[3],b=cInstruct,out=writeM, out=mChange);
+    
+    //if m was changed, than it must be ALU out
+    Mux16(a= inM, b= ALUOut, sel= mChange, out= outM);
+
+
+    //PC stuff
+    
+    //should jump? ei negative and condition was negative
+    And(a= Zero, b= instruction[1], out= zCase);
+    And(a=Negative, b=instruction[2], out =nCase);
+    Not(in= Negative, out= Positive);
+    And(a=Positive, b=instruction[0], out=pCase);
+
+    Or(a= zCase, b= nCase, out= znCase);
+    Or(a= znCase, b= pCase, out= JMPCASE1);
+    And(a= JMPCASE1, b= cInstruct, out= JMPCASE );
+
+    Not(in=JMPCASE , out=increnebt );
+    
+
+    //incrememnt if no jump
+    PC(in= aReg, load= JMPCASE, inc= increnebt, reset= reset, out[0..14]=pc);
+
+
+}
