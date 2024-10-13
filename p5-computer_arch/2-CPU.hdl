@@ -35,7 +35,7 @@ CHIP CPU {
     Not(in= instruction[15], out= aInstruct);
     Not(in=aInstruct, out = cInstruct);
 
-    Mux16(a= instruction[0..15], b= ALUOut, sel= aInstruct, out= preA);
+    Mux16(a= ALUOut, b= instruction[0..15], sel= aInstruct, out= preA);
     
     //dest=aregister OR a instruct
     And(a= cInstruct, b= instruction[5], out= cInstructStoreA);
@@ -66,7 +66,13 @@ CHIP CPU {
     //should jump? ei negative and condition was negative
     And(a= Zero, b= instruction[1], out= zCase);
     And(a=Negative, b=instruction[2], out =nCase);
-    Not(in= Negative, out= Positive);
+
+
+    Not(in= Negative, out= notNeg);
+    Not(in=Zero, out=notZero);
+    And(a=notNeg, b=notZero, out=Positive);
+    
+    
     And(a=Positive, b=instruction[0], out=pCase);
 
     Or(a= zCase, b= nCase, out= znCase);
