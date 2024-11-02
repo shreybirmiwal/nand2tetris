@@ -32,15 +32,72 @@ comp_dict = {
 
 }
 
+labels = {
+
+    # predifined labels below
+
+    'R0': 0,
+    'R1': 1,
+    'R2': 2,
+    'R3': 3,
+    'R4': 4,
+    'R5': 5,
+    'R6': 6,
+    'R7': 7,
+    'R8': 8,
+    'R9': 9,
+    'R10': 10,
+    'R11': 11,
+    'R12': 12,
+    'R13': 13,
+    'R14': 14,
+    'R15': 15,
+
+
+    'SCREEN': 16384,
+    'KBD': 24576,   
+    'SP': 0,
+    'LCL': 1,
+    'ARG': 2,
+    'THIS': 3,
+    'THAT': 4,
+
+    ## end pre defined above 
+
+        
+}
+
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
         return file.read()
     
+def preprocessLabels(assembly_code_raw):
+    rom_address = 0
+    for line in assembly_code_raw:
+        line = line.strip()
+        if line == '' or line.startswith('//'):
+            continue
+        if '//' in line:
+            line = line.split('//')[0].strip()
+        
+        if line.startswith('('):
+            label = line[1:-1]
+            labels[label] = rom_address
+        else:
+            rom_address += 1
+    
+    print("Labels: ")   
+    print(labels)
+    return assembly_code_raw
+
+    
 def processAssemblyCode(assembly_code_raw):
+    assembly_code_raw = preprocessLabels(assembly_code_raw)
     output = ""
-    assembly_code = assembly_code_raw.split('\n')
-    for line in assembly_code:
+    next_variable_address = 16
+
+    for line in assembly_code_raw:
         line = line.strip()
         if line == '':
             continue
@@ -50,12 +107,25 @@ def processAssemblyCode(assembly_code_raw):
 
         if r'//' in line:
             line = line.split('//')[0] # Remove comments
+        
+        if line.startswith('('):
+            continue
+            
 
         if line.startswith('@'):
-            #print('A instruction')
-            num_in_decimal = line[1:]
-            num_in_binary = bin(int(num_in_decimal))[2:].zfill(15)  # Padded to 15 total digits, [2:] to remove '0b'
-
+            num_or_symbol = line[1:]
+            if num_or_symbol.isdigit():
+                num_in_decimal = int(num_or_symbol)
+            elif num_or_symbol in labels:
+                num_in_decimal = labels[num_or_symbol]
+            else:
+                # It's a new variable
+                if num_or_symbol not in labels:
+                    labels[num_or_symbol] = next_variable_address
+                    next_variable_address += 1
+                num_in_decimal = labels[num_or_symbol]
+            
+            num_in_binary = bin(num_in_decimal)[2:].zfill(15)
             temp_out = '0' + num_in_binary + '\n'
             output += temp_out
         else:
@@ -78,6 +148,7 @@ def processAssemblyCode(assembly_code_raw):
             else:
                 val += '0'
 
+            #adding C bits here
             val += comp_dict[comp]
 
             #dest bits (13-15 bits)
@@ -134,14 +205,13 @@ def processAssemblyCode(assembly_code_raw):
     
 
 def main():
-    file_path = './in/rectl.asm'
+    file_path = './in/max.asm'
     assembly_code_raw = read_file(file_path=file_path)
-
-    #print(assembly_code_raw)
     out = processAssemblyCode(assembly_code_raw)
+    
     print("################")
     print(out)
-    with open('./out/rectl.hack', 'w') as file:
+    with open('./out/max.hack', 'w') as file:
         file.write(out)
 
 
