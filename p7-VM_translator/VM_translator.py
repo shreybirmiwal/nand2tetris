@@ -1,7 +1,13 @@
 def handle_push_pop(tokens):
+    if tokens[0] == 'push':
+        if tokens[1] == 'constant':
+            return f'//PUSH_CONSTANT\n@{tokens[2]}\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n'
+    
     return 
 
 def handle_arithmetic(tokens):
+    if tokens[0] == 'add':
+        return f'//ADD\n@SP\nA=M\nA=A-1\nD=M\nA=A-1\nD=D+M\nM=D\n@SP\nM=M-1\n'
     return
 
 def handle_logic(tokens):
@@ -34,15 +40,15 @@ def processVM(vm_code_raw):
         
 
         tokens = line.split(' ')
-        if tokens[0] == 'push' | tokens[0] == 'pop':
+        if tokens[0] == 'push' or tokens[0] == 'pop':
             output += handle_push_pop(tokens)
-        if tokens[0] == 'add' | tokens[0] == 'sub':
+        if tokens[0] == 'add' or tokens[0] == 'sub':
             output += handle_arithmetic(tokens)
-        if tokens[0] == 'neg' | tokens[0] == 'eq' | tokens[0] == 'gt' | tokens[0] == 'lt' | tokens[0] == 'and' | tokens[0] == 'or' | tokens[0] == 'not':
+        if tokens[0] == 'neg' or tokens[0] == 'eq' or tokens[0] == 'gt' or tokens[0] == 'lt' or tokens[0] == 'and' or tokens[0] == 'or' or tokens[0] == 'not':
             output += handle_logic(tokens)
 
 
-    return vm_code_raw
+    return output
 
 
 def main():
